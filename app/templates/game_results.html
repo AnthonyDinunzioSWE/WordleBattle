@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white relative p-6 overflow-hidden">
+
+    <!-- Ambient FX -->
+    <div class="absolute top-0 left-0 w-72 h-72 bg-purple-600 opacity-30 rounded-full blur-3xl animate-pulse z-0"></div>
+    <div class="absolute bottom-0 right-0 w-96 h-96 bg-blue-500 opacity-20 rounded-full blur-3xl animate-ping z-0"></div>
+
+    <div class="relative z-10 flex flex-col items-center justify-center space-y-12">
+
+        <!-- Game Results Header -->
+        <div class="text-center animate-fadeInUp">
+            <h1 class="text-5xl font-extrabold bg-gradient-to-r from-green-400 via-blue-500 to-purple-600 text-transparent bg-clip-text drop-shadow-xl">
+                Game Results
+            </h1>
+            <p class="text-xl text-gray-300 mt-3 font-medium animate-fadeIn delay-200">
+                {{ result }}
+            </p>
+        </div>
+
+        <!-- User Stats -->
+        <div class="w-full max-w-md bg-white bg-opacity-10 backdrop-blur-md rounded-2xl shadow-2xl p-8 text-center space-y-4 hover:scale-[1.02] transition-all duration-300">
+            <h2 class="text-2xl font-bold mb-4 text-white">Your Stats</h2>
+            <div class="text-gray-300 space-y-2">
+                <p>📊 ELO: <span class="text-white font-semibold">{{ user.elo_rating }}</span></p>
+                <p>
+                    🔁 ELO Change:
+                    {% if user.username == player1 %}
+                        <span class="font-semibold {% if player1_elo_change > 0 %}text-green-400{% else %}text-red-500{% endif %}">
+                            {{ player1_elo_change }}
+                        </span>
+                    {% elif user.username == player2 %}
+                        <span class="font-semibold {% if player2_elo_change > 0 %}text-green-400{% else %}text-red-500{% endif %}">
+                            {{ player2_elo_change }}
+                        </span>
+                    {% else %}
+                        <span class="text-gray-400">N/A</span>
+                    {% endif %}
+                </p>
+                <p>🏆 Wins: <span class="text-white font-semibold">{{ user.wins }}</span></p>
+                <p>💀 Losses: <span class="text-white font-semibold">{{ user.losses }}</span></p>
+                <p>🤝 Draws: <span class="text-white font-semibold">{{ user.draws }}</span></p>
+                <p>🎖️ Rank: <span class="text-white font-semibold">{{ user.rank }}</span></p>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap justify-center gap-6">
+            <a href="{{ url_for('main.find_match') }}" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full shadow-md transition-all duration-300 hover:scale-105">
+                🔁 Requeue
+            </a>
+            <a href="{{ url_for('main.profile') }}" class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-full shadow-md transition-all duration-300 hover:scale-105">
+                👤 Back to Profile
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-fadeInUp {
+        animation: fadeInUp 0.8s ease-out;
+    }
+
+    .animate-fadeIn {
+        animation: fadeIn 1s ease-in;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+</style>
+{% endblock %}

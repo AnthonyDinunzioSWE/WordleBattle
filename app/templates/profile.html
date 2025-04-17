@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white p-8 relative overflow-hidden">
+
+    <!-- Floating Ambient Lights -->
+    <div class="absolute top-0 left-0 w-72 h-72 bg-purple-600 opacity-30 rounded-full blur-3xl animate-pulse z-0"></div>
+    <div class="absolute bottom-0 right-0 w-96 h-96 bg-blue-500 opacity-20 rounded-full blur-3xl animate-pulse z-0"></div>
+
+    <!-- Profile Container -->
+    <div class="relative z-10 max-w-4xl mx-auto bg-white bg-opacity-10 backdrop-blur-xl shadow-2xl rounded-2xl p-8 animate-fadeInUp">
+
+        <!-- Profile Header -->
+        <div class="flex flex-col md:flex-row md:items-center gap-6 md:gap-10">
+            <img 
+                src="{% if user.profile_picture.startswith('http') %}{{ user.profile_picture }}{% else %}{{ url_for('static', filename=user.profile_picture) }}{% endif %}" 
+                alt="Profile Picture" 
+                class="w-28 h-28 rounded-full border-4 border-blue-500 shadow-lg transition-transform duration-300 hover:scale-105"
+            >
+
+            <div class="flex flex-col justify-center gap-1">
+                <div class="flex items-center space-x-3">
+                    <h1 class="text-3xl font-extrabold text-white">{{ user.username }}</h1>
+                    <img 
+                        src="{{ url_for('static', filename='rank_badges/' + user.rank + '.png') }}" 
+                        alt="Rank Badge" 
+                        class="w-6 h-6"
+                    >
+                </div>
+                <p class="text-gray-300 text-sm">{{ user.email }}</p>
+            </div>
+        </div>
+
+        <!-- Stats Section -->
+        <div class="grid md:grid-cols-2 gap-6 mt-8 text-sm sm:text-base">
+            <div class="bg-gray-800 bg-opacity-70 rounded-xl p-6 space-y-2 shadow-inner">
+                <h2 class="text-xl font-bold mb-2 text-blue-400">📈 Stats</h2>
+                <p>🏅 ELO: <span class="font-semibold text-white">{{ user.elo_rating }}</span></p>
+                <p>🏆 Wins: <span class="text-white">{{ user.wins }}</span></p>
+                <p>💀 Losses: <span class="text-white">{{ user.losses }}</span></p>
+                <p>🕹️ Games Played: <span class="text-white">{{ user.games_played }}</span></p>
+                <p>🤝 Draws: <span class="text-white">{{ user.draws }}</span></p>
+                <p>🎖️ Rank: <span class="text-white">{{ user.rank }}</span></p>
+            </div>
+
+            <!-- Upload Profile Picture -->
+            <div class="bg-gray-800 bg-opacity-70 rounded-xl p-6 shadow-inner">
+                <h2 class="text-xl font-bold text-purple-400 mb-4">🖼️ Change Profile Picture</h2>
+                <form action="{{ url_for('main.upload_profile_picture') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
+                    <label class="block text-sm font-medium text-gray-300" for="profile_picture">Upload New Picture</label>
+                    <input 
+                        type="file" 
+                        name="profile_picture" 
+                        id="profile_picture" 
+                        class="block w-full px-4 py-2 bg-gray-700 text-gray-100 rounded-lg border border-gray-600 file:bg-blue-500 file:text-white file:font-semibold file:rounded file:px-4 file:py-1 cursor-pointer"
+                    >
+                    <button 
+                        type="submit" 
+                        class="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-purple-600 hover:to-blue-500 transition-colors duration-300 text-white font-semibold py-2 rounded-lg shadow-lg"
+                    >
+                        🚀 Upload
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Google Account Linking -->
+        <div class="mt-8 text-center">
+            {% if not user.google_id %}
+                <a href="{{ url_for('google.login') }}" 
+                   class="inline-block px-6 py-2 bg-red-500 hover:bg-red-600 transition-all duration-300 text-white rounded-full font-medium shadow-lg hover:scale-105">
+                   🔗 Link Google Account
+                </a>
+            {% else %}
+                <p class="text-green-400 text-lg font-semibold">✅ Google account linked!</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Animations -->
+<style>
+@keyframes fadeInUp {
+    0% { opacity: 0; transform: translateY(20px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+.animate-fadeInUp {
+    animation: fadeInUp 0.8s ease-out;
+}
+</style>
+{% endblock %}

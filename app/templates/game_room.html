@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white p-6 relative overflow-hidden">
+    <!-- Floating Gradient Orbs for Eye Candy -->
+    <div class="absolute top-0 left-0 w-72 h-72 bg-blue-500 opacity-30 rounded-full blur-3xl "></div>
+    <div class="absolute bottom-0 right-0 w-96 h-96 bg-purple-600 opacity-20 rounded-full blur-3xl "></div>
+    <div class="absolute top-1/2 left-1/2 w-64 h-64 bg-pink-500 opacity-25 rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2"></div>
+    <div class="absolute top-1/4 right-1/4 w-48 h-48 bg-green-500 opacity-20 rounded-full blur-3xl "></div>
+    <div class="relative z-10 flex flex-col items-center justify-center space-y-12">
+
+        <!-- Game Header -->
+        <div class="text-center">
+            <h1 class="text-5xl font-extrabold bg-gradient-to-r from-green-400 via-blue-500 to-purple-600 text-transparent bg-clip-text drop-shadow-xl">
+                Game Room: {{ room }}
+            </h1>
+        </div>
+
+        <!-- Player Cards -->
+        <div class="flex flex-wrap justify-center gap-10">
+            {% for player in [player1, player2] %}
+            <div class="bg-white bg-opacity-10 backdrop-blur-md p-6 rounded-xl shadow-2xl hover:scale-105 transition-transform duration-300 w-72 text-center">
+                <img 
+                    src="{% if player.profile_picture.startswith('http') %}{{ player.profile_picture }}{% else %}{{ url_for('static', filename=player.profile_picture) }}{% endif %}" 
+                    alt="Profile" 
+                    class="w-24 h-24 mx-auto rounded-full border-4 border-blue-500 mb-4"
+                >
+                <div class="flex items-center justify-center space-x-2 mb-2">
+                    <h2 class="text-xl font-bold">{{ player.username }}</h2>
+                    <img src="{{ url_for('static', filename='rank_badges/' + player.rank + '.png') }}" alt="Rank Badge" class="w-6 h-6">
+                </div>
+                <div class="text-sm text-gray-300 space-y-1">
+                    <p>🏆 Wins: <span class="text-white font-medium">{{ player.wins }}</span></p>
+                    <p>💀 Losses: <span class="text-white font-medium">{{ player.losses }}</span></p>
+                    <p>🎖️ Rank: <span class="text-white font-medium">{{ player.rank }}</span></p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Game Phase + Timer -->
+        <div class="text-center">
+            <div id="phase" class="text-2xl font-bold text-yellow-400 mb-1 animate-pulse">Picking Phase</div>
+            <div id="timer" class="text-md text-gray-300">⏳ Time Remaining: <span class="font-semibold">45s</span></div>
+        </div>
+
+        <!-- Picking Phase -->
+        <div id="picking-phase" class="flex flex-col items-center gap-4">
+            <input 
+                id="word" 
+                maxlength="5"
+                placeholder="Enter a 5-letter word" 
+                class="w-64 px-4 py-2 text-black rounded-lg focus:ring-2 focus:ring-blue-500 border border-gray-300 transition-all"
+            >
+            <button 
+                onclick="submitWord()" 
+                class="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-purple-600 hover:to-blue-500 text-white font-semibold py-2 px-6 rounded-full shadow-lg transition-all duration-300 transform hover:scale-105"
+            >
+                🚀 Submit Word
+            </button>
+        </div>
+
+        <!-- Guessing Phase -->
+        <div id="guessing-phase" class="hidden flex flex-col items-center gap-4">
+            <p id="opponent_word_length" class="text-md text-gray-300"></p>
+            <div id="wordle-grid" class="grid grid-rows-6 gap-2"></div>
+            <input id="hidden-input" type="text" maxlength="1" class="absolute opacity-0 pointer-events-none">
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+<script>
+    const socket = io(); // Initialize the Socket.IO client
+    const room = '{{ room }}';
+    const maxRows = 6; // Maximum number of guesses
+    const wordLength = 5; // Length of the word
+    let currentRow = 0;
+    let currentCol = 0;
+    let grid = [];
+
+    // Join the game room
+    socket.emit('join', room);
+
+    // Picking Phase
+    let timeRemaining = 45;
+    const timerElement = document.getElementById('timer');
+    const timerInterval = setInterval(() => {
+        timeRemaining -= 1;
+        timerElement.textContent = `Time Remaining: ${timeRemaining}`;
+
+        if (timeRemaining <= 0) {
+            clearInterval(timerInterval);
+            socket.emit('timeout_picking_phase', { room });
+        }
+    }, 1000);
+
+    function submitWord() {
+        const word = document.getElementById('word').value;
+        socket.emit('submit_word', { room, word });
+        clearInterval(timerInterval); // Stop the timer once the word is submitted
+    }
+
+    // Guessing Phase
+    function submitGuess() {
+        const guess = grid[currentRow].map(cell => cell.textContent).join('');
+        if (guess.length === wordLength) {
+            console.log(`Submitting guess: ${guess}`); // Debugging log
+            socket.emit('submit_guess', { room, guess });
+        }
+    }
+
+    // Listen for guess feedback
+    socket.on('guess_feedback', function(data) {
+        const { guess, feedback } = data;
+
+        // Update the current row with feedback
+        for (let i = 0; i < feedback.length; i++) {
+            grid[currentRow][i].style.backgroundColor = feedback[i];
+        }
+
+        // Move to the next row
+        currentRow++;
+        currentCol = 0;
+
+        if (currentRow === maxRows) {
+            alert('Game over! You ran out of guesses.');
+        }
+    });
+
+    // Initialize the Wordle grid
+    function createWordleGrid(rows, cols) {
+        const gridElement = document.getElementById('wordle-grid');
+        gridElement.innerHTML = ''; // Clear any existing grid
+        grid = []; // Reset the grid array
+
+        for (let i = 0; i < rows; i++) {
+            const row = [];
+            const rowElement = document.createElement('div');
+            rowElement.className = 'flex space-x-2';
+
+            for (let j = 0; j < cols; j++) {
+                const cell = document.createElement('div');
+                cell.className = 'w-10 h-10 bg-gray-800 border border-gray-600 text-center text-white font-bold flex items-center justify-center';
+                rowElement.appendChild(cell);
+                row.push(cell);
+            }
+
+            gridElement.appendChild(rowElement);
+            grid.push(row);
+        }
+    }
+
+    // Create a 6x5 Wordle grid (6 guesses, 5 letters per word)
+    createWordleGrid(6, 5);
+
+    // Handle keyboard input
+    const hiddenInput = document.getElementById('hidden-input');
+    hiddenInput.addEventListener('input', (event) => {
+        const key = event.target.value.toUpperCase();
+        event.target.value = ''; // Clear the input field
+
+        if (/^[A-Z]$/.test(key)) {
+            if (currentCol < wordLength) {
+                grid[currentRow][currentCol].textContent = key;
+                currentCol++;
+            }
+        }
+    });
+
+    document.addEventListener('click', () => {
+        hiddenInput.focus(); // Focus the hidden input on click
+    });
+
+    document.addEventListener('keydown', (event) => {
+        const key = event.key;
+
+        if (key === 'Backspace') {
+            if (currentCol > 0) {
+                currentCol--;
+                grid[currentRow][currentCol].textContent = '';
+            }
+        } else if (key === 'Enter') {
+            if (currentCol === wordLength) {
+                submitGuess();
+            }
+        }
+    });
+
+    // Listen for the guessing phase
+    socket.on('start_guessing_phase', function(data) {
+        document.getElementById('phase').textContent = 'Guessing Phase';
+        document.getElementById('opponent_word_length').textContent = `Opponent's word length: ${data.opponent_word_length}`;
+        document.getElementById('picking-phase').style.display = 'none';
+        document.getElementById('guessing-phase').style.display = 'block';
+        hiddenInput.focus(); // Focus the hidden input for mobile users
+    });
+
+    // Listen for game over
+    socket.on('game_over', function(data) {
+    const result = data.result;
+    const player1 = data.player1;
+    const player2 = data.player2;
+    const player1EloChange = data.player1_elo_change;
+    const player2EloChange = data.player2_elo_change;
+
+    console.log('Game Over Data:', data); // Debugging log
+
+    // Redirect to game results page with ELO changes
+    window.location.href = `/game_results?result=${encodeURIComponent(result)}&player1=${encodeURIComponent(player1)}&player2=${encodeURIComponent(player2)}&player1_elo_change=${player1EloChange}&player2_elo_change=${player2EloChange}`;
+    });
+</script>
+{% endblock %}

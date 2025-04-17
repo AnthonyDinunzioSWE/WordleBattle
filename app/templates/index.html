@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="min-h-screen bg-gray-900 text-white flex flex-col justify-center items-center">
+    <div class="text-center">
+        <h1 class="text-4xl font-bold mb-4">Welcome to <span class="text-blue-500">WordleBattle</span></h1>
+        <p class="text-gray-400 mb-8">Challenge your friends or random opponents in a competitive Wordle experience!</p>
+        {% if not current_user.is_authenticated %}
+            <div class="space-y-4">
+                <a href="{{ url_for('main.register') }}" 
+                   class="bg-blue-500 mr-2 hover:bg-blue-600 text-white py-2 px-6 rounded-lg text-lg">
+                   Register
+                </a>
+                <a href="{{ url_for('main.login') }}" 
+                   class="bg-green-500 ml-2 hover:bg-green-600 text-white py-2 px-6 rounded-lg text-lg">
+                   Login
+                </a>
+            </div>
+        {% else %}
+            <a href="{{ url_for('main.profile') }}" 
+               class="bg-green-500 hover:bg-green-600 text-white py-2 px-6 rounded-lg text-lg">
+               Go to Profile
+            </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

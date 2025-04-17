@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white">
+    <!-- Loading Spinner -->
+    <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-500 border-opacity-75 mb-6"></div>
+    
+    <!-- Text Content -->
+    <div class="text-center">
+        <h1 class="text-3xl font-bold mb-4">Waiting for another player...</h1>
+        <p class="text-gray-400">Stay on this page until a match is found. We'll notify you when you're ready to play!</p>
+    </div>
+</div>
+
+<script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+<script>
+    const socket = io();
+
+    // Notify the server that the player has joined the queue
+    socket.emit('join_queue');
+
+    socket.on('match_found', function(data) {
+    const room = data.room;
+    window.location.href = `/game_room/${room}`;
+});
+
+    socket.on('start_picking_phase', function(data) {
+        const room = data.room;
+        window.location.href = `/game_room/${room}`;
+    });
+</script>
+{% endblock %}
